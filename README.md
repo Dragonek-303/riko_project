@@ -1,7 +1,3 @@
-
-
-## 📊 Badges
-
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
 ![Platform](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)
 ![Frontend](https://img.shields.io/badge/Frontend-Vite-yellow?logo=vite)
