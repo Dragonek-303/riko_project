@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Napisy Riko</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="/manifest.json" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #subtitle-container {
+      text-align: center;
+      font-weight: bold;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      max-width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      word-wrap: break-word;
+    }
+    #subtitle-container.visible {
+      opacity: 1;
+    }
+    #fullscreenBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <button id="fullscreenBtn">⛶</button>
+  <div id="subtitle-container"></div>
+
+  <script type="module">
+    const WS_URL = `ws://${location.hostname}:8001/ws`;
+    const sub = document.getElementById("subtitle-container");
+
+    document.getElementById("fullscreenBtn").addEventListener("click", () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        document.documentElement.requestFullscreen();
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      const btn = document.getElementById("fullscreenBtn");
+      if (document.fullscreenElement) {
+        btn.style.opacity = "0";
+        setTimeout(() => { btn.style.display = "none"; }, 300);
+      } else {
+        btn.style.display = "block";
+        setTimeout(() => { btn.style.opacity = "1"; }, 50);
+      }
+    });
+
+    const ws = new WebSocket(WS_URL);
+
+    ws.onmessage = ({ data }) => {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.type === "start_animation") {
+          const text = msg.audio_text;
+          const duration = msg.audio_duraction || 3;
+
+          if (text && duration > 0) {
+            sub.innerText = text;
+            sub.classList.add("visible");
+
+            const len = text.length;
+            let size;
+            if (len > 300) {
+              size = "clamp(12px, 2.5vw, 24px)";
+            } else if (len > 200) {
+              size = "clamp(14px, 3vw, 32px)";
+            } else if (len > 100) {
+              size = "clamp(18px, 4vw, 44px)";
+            } else {
+              size = "clamp(22px, 5vw, 60px)";
+            }
+            sub.style.fontSize = size;
+
+            setTimeout(() => {
+              sub.innerText = "";
+              sub.classList.remove("visible");
+            }, duration * 1000);
+          }
+        }
+      } catch (e) {}
+    };
+
+    ws.onopen = () => console.log("✅ Subtitles connected");
+  </script>
+</body>
+</html>
