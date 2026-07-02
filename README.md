@@ -1,3 +1,7 @@
+
+
+## 📊 Badges
+
 ![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python)
 ![Platform](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)
 ![Frontend](https://img.shields.io/badge/Frontend-Vite-yellow?logo=vite)
@@ -6,18 +10,18 @@
 ![AI](https://img.shields.io/badge/AI-LLM%20Agent-purple)
 ![Voice](https://img.shields.io/badge/Voice-GPT--SoVITS-orange)
 ![Status](https://img.shields.io/badge/Status-Active-success)
-![Complexity](https://img.shields.io/badge/Complexity-High%20(Research%20Project)-red)
+
 
 ---
 
 
 
-# 🦊 Project Riko
+# Project Riko
 
 > Interactive AI companion with 3D VRM avatar, voice synthesis, and LLM-driven personality system.
 
 
-## ⚠️ What is this?
+##  What is this?
 
 Project Riko is a **distributed AI companion system**, not a chatbot.
 
@@ -78,13 +82,6 @@ python -m venv .venv
 pip install uv
 ```
 
-### ❓ Why uv is used?
-
-`uv` is used to speed up dependency installation and avoid resolver issues in heavy AI stacks.
-👉 It is NOT required for the project to run.
-
-Use `uv` only if you want faster setup.
-
 ---
 
 ### 3. Install PyTorch
@@ -113,15 +110,10 @@ After installing PyTorch:
 uv pip install -r requirements.txt
 ```
 
-or without uv:
-
-```bash
-pip install -r requirements.txt
-```
 
 ---
 
-### 5. Install Frontend dependencies (IMPORTANT – first run only)
+### 5. Install Frontend dependencies
 
 Before starting the project for the first time, install Node.js dependencies:
 
@@ -130,9 +122,6 @@ cd client
 npm install
 cd ..
 ```
-
-👉 This step is required only once after cloning the repository.
-`node_modules` is not included in the repo and is generated automatically.
 
 ---
 
@@ -225,7 +214,6 @@ More chaotic:
 
 - This file is the **core behavior system of Riko**
 - Changes apply after restart
-- No code changes are required
 - Incorrect YAML formatting may break behavior consistency
 
 ### 6. GPT-SoVITS (required separately)
@@ -465,14 +453,6 @@ You are debugging FAISS indexing issues
 
 ---
 
-## 💜 Credits
-
-* GPT-SoVITS → [https://github.com/RVC-Boss/GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
-* Three-VRM → [https://github.com/pixiv/three-vrm](https://github.com/pixiv/three-vrm)
-* Three.js → [https://threejs.org](https://threejs.org)
-* FastAPI → [https://fastapi.tiangolo.com](https://fastapi.tiangolo.com)
-* OpenRouter → [https://openrouter.ai](https://openrouter.ai)
-* Groq → [https://groq.com](https://groq.com)
 
 ---
 
