@@ -10,7 +10,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-SUMMARY_MODEL = "qwen/qwen3-32b"
+SUMMARY_MODEL = "openai/gpt-oss-120b"
 
 # Number of messages after which a summary is generated
 SUMMARY_INTERVAL = 10
@@ -120,8 +120,7 @@ def summarize_history_groq(history):
                     "content": f"Summarize this conversation.:\n\n{full_text}"
                 }
             ],
-            max_tokens=600,
-            temperature=0.0
+            max_tokens=600
         )
 
         msg = response.choices[0].message
