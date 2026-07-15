@@ -221,7 +221,7 @@ More chaotic:
 ⚠️ Voice system is NOT included in this repo.
 
 Install here(version:20250228v3):
-👉 [https://github.com/RVC-Boss/GPT-SoVITS]((https://github.com/RVC-Boss/GPT-SoVITS/releases/tag/20250228v3))
+👉 [https://github.com/RVC-Boss/GPT-SoVITS/releases/tag/20250228v3]
 
 or here:
 👉[https://huggingface.co/Dragonek-303/GPT-SoVits]
