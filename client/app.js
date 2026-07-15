@@ -1174,6 +1174,24 @@ let currentAction = null;
       fileInput.value = "";
   });
 
+    // --- Money button 💰 ---
+  const moneyBtn = document.getElementById('moneyBtn');
+  moneyBtn.addEventListener('click', async () => {
+      const amount = prompt('How much are you offering, Riko? (USD)');
+      if (!amount || isNaN(amount) || Number(amount) <= 0) return;
 
+      const text = `[the user sent you $${amount}]`;
+      console.log('💰 Send:', text);
+
+      await fetch('http://127.0.0.1:8001/manual_text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, manual: true })
+      });
+
+      // animation blink button
+      moneyBtn.style.transform = 'scale(1.3)';
+      setTimeout(() => { moneyBtn.style.transform = 'scale(1)'; }, 200);
+  });
 
 })();
