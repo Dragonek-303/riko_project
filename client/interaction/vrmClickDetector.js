@@ -120,6 +120,7 @@ export function initVRMClickDetector(renderer, camera, vrm, onRegionClick) {
             "#mic-button",
             ".image-upload",
             "#image-input",
+            "#moneyBtn",
             "button",
             "input",
             "label",
