@@ -1,3 +1,4 @@
+# history_manager.py
 import os
 import json
 from pathlib import Path
@@ -9,12 +10,8 @@ import re
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
 SUMMARY_MODEL = "qwen/qwen3.6-27b"
-
-# Number of messages after which a summary is generated
-SUMMARY_INTERVAL = 10
-
+SUMMARY_INTERVAL = 10  # Interval for triggering conversation summarization
 
 # ============================================================
 # 1. HISTORY
@@ -27,13 +24,14 @@ def load_history():
     try:
         return json.load(open(path, "r", encoding="utf-8"))
     except:
-        print("⚠️ Could not read history.json - creating a new history.")
+        print("⚠️ Failed to read history.json – creating a new history file.")
         return []
 
-
 def save_history(history):
-    json.dump(history, open("history.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-
+    # OPTIMIZATION: Keep only the last 20 messages in the file, 
+    # as older interactions are already secured in the global summary and vector database.
+    truncated_history = history[-20:]
+    json.dump(truncated_history, open("history.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
 # ============================================================
 # 2. SUMMARY
@@ -44,8 +42,7 @@ def save_summary(summary_text):
     save_dir.mkdir(parents=True, exist_ok=True)
     json.dump({"summary": summary_text}, open(save_dir / "history_summary.json", "w", encoding="utf-8"),
               ensure_ascii=False, indent=2)
-    print(f"💾 Saved history summary to: data/global_data/history_summary.json")
-
+    print(f"💾 History summary saved to: data/global_data/history_summary.json")
 
 def load_summary():
     path = Path("data/global_data/history_summary.json")
@@ -56,9 +53,8 @@ def load_summary():
     except:
         return ""
 
-
 # ============================================================
-# 3. MESSAGE COUNTER SINCE LAST SUMMARY
+# 3. MESSAGE COUNTER
 # ============================================================
 
 def load_summary_state():
@@ -70,33 +66,34 @@ def load_summary_state():
     except:
         return {"messages_since_summary": 0}
 
-
 def save_summary_state(state):
     path = Path("data/global_data/summary_state.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     json.dump(state, open(path, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 
-
 # ============================================================
-# 4. GROQ SUMMARY
+# 4. GROQ SUMMARIZATION (FIXED)
 # ============================================================
 
-def summarize_history_groq(history):
+def summarize_history_groq(combined_history):
     if not GROQ_API_KEY:
-        print("❌ GROQ_API_KEY missing – cannot summarize history.")
+        print("❌ Missing GROQ_API_KEY — unable to summarize conversation history.")
         return None
 
     client = Groq(api_key=GROQ_API_KEY)
 
-    # Weaving the story into a single text
+    # REVISION: Iterating over the passed 'combined_history' slice instead of the global history
     full_text = ""
-    for entry in history:
+    for entry in combined_history:
         ts = entry.get("timestamp", "")
         role = entry.get("role", "")
         text = entry.get("text", "")
-        full_text += f"[{ts}] {role}: {text}\n"
+        if role == "system":
+            full_text += f"[PREVIOUS SUMMARY]: {text}\n\n"
+        else:
+            full_text += f"[{ts}] {role}: {text}\n"
 
-    print("📡 I am sending the history to Groq for summarization...")
+    print("📡 Sending filtered history slice to Groq for summarization...")
 
     try:
         response = client.chat.completions.create(
@@ -105,31 +102,37 @@ def summarize_history_groq(history):
                 {
                     "role": "system",
                     "content": (
-                        "Your task is to create a precise summary of the conversation.\n"
-                        "Rules:\n"
-                        "- Do NOT add new information.\n"
-                        "- Do NOT invent dialogue.\n"
-                        "- Do NOT repeat content.\n"
-                        "- Return ONLY the final summary.\n"
-                        "- Single paragraph.\n"
-                        "- The response MUST end with a complete sentence."
+                        "Otrzymujesz listę fragmentów historii rozmowy. "
+                        "Pierwszym fragmentem jest poprzednie streszczenie całej konwersacji. "
+                        "Kolejne fragmenty to najnowsze wiadomości.\n"
+                        "Twoim zadaniem jest stworzyć JEDNO zwięzłe streszczenie CAŁEJ rozmowy, "
+                        "łącząc poprzednie streszczenie z nowymi wiadomościami.\n"
+                        "Zasady:\n"
+                        "- NIE dodawaj nowych informacji.\n"
+                        "- NIE wymyślaj dialogów.\n"
+                        "- NIE powtarzaj treści.\n"
+                        "- NIE używaj tagów <think>.\n"
+                        "- Zwróć TYLKO finalne streszczenie.\n"
+                        "- Jeden, zwięzły akapit.\n"
+                        "- Odpowiedź MUSI kończyć się pełnym zdaniem."
                     )
                 },
                 {
                     "role": "user",
-                    "content": f"Summarize this conversation.:\n\n{full_text}"
+                    "content": f"Streść tę rozmowę po polsku:\n\n{full_text}"
                 }
             ],
-            max_tokens=1000
+            max_tokens=2000,
+            # --- DISABLED REASONING EXTRA TOKENS ---
+            reasoning_effort="none",   # Suppresses token generation for thinking phases
+            reasoning_format="hidden", # Formats out the reasoning block from the output content
         )
 
         msg = response.choices[0].message
         content = getattr(msg, "content", "")
 
-        # Remove reasoning
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
 
-        # Remove duplicate sentences
         sentences = re.split(r'(?<=[.!?])\s*', content.strip())
         unique = []
         for s in sentences:
@@ -141,36 +144,32 @@ def summarize_history_groq(history):
         if not content.endswith((".", "!", "?")):
             content += "."
 
-        print("📨 Groq's response:", content)
+        print("📨 Groq response:", content)
         return content
 
     except Exception as e:
-        print(f"❌ Error while summarizing history: {e}")
+        print(f"❌ Error during history summarization: {e}")
         return None
 
-
 # ============================================================
-# 5. MAIN FUNCTION WITH COUNTER
+# 5. MAIN HISTORY MANAGER FUNCTION
 # ============================================================
 
 def manage_history(new_user_text, new_assistant_text):
     history = load_history()
     now = datetime.now().isoformat(sep=" ", timespec="seconds")
 
-    # Dodajemy nowe wpisy
     history.append({"role": "user", "text": new_user_text, "timestamp": now})
     history.append({"role": "assistant", "text": new_assistant_text, "timestamp": now})
 
     save_history(history)
 
-    # ---- THE LOGIC OF SUMMARY ----
     state = load_summary_state()
-    state["messages_since_summary"] += 2  # user + assistant
+    state["messages_since_summary"] += 2
 
     if state["messages_since_summary"] >= SUMMARY_INTERVAL:
-        print("⚠️ 20 messages have passed — creating a new summary...")
+        print(f"⚠️ Reached {SUMMARY_INTERVAL} messages — triggering new summary generation...")
 
-        # Summary = previous summary + new information
         previous_summary = load_summary()
 
         combined_history = []
@@ -180,13 +179,15 @@ def manage_history(new_user_text, new_assistant_text):
                 "text": previous_summary,
                 "timestamp": now
             })
+        
+        # Pull only the defined conversational frame slice
         combined_history.extend(history[-SUMMARY_INTERVAL:])
 
         summary = summarize_history_groq(combined_history)
 
         if summary:
             save_summary(summary)
-            state["messages_since_summary"] = 0  # counter reset
+            state["messages_since_summary"] = 0  # reset counter
 
     save_summary_state(state)
 
